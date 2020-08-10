@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Coming soon</h1>
+<p>
+    Welcome, {{ user.id|safe }}, the mobile version of this website is coming soon. For now, either visit on a non-mobile device, or change your settings to desktop view.
+</p>
+
+<h4>Don't have that setting?</h4>
+<button onclick='document.cookie = "mobile=false"'>Set MOBILE_COOKIE</button>
+
+{% endblock %}

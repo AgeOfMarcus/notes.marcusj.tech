@@ -64,23 +64,23 @@
 }
 
 .pane {
-  list-style-type: none;
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  background-color: #f1f1f1;
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    background-color: #f1f1f1;
 }
 
 .node a {
-  display: block;
-  color: #000;
-  padding: 8px 16px;
-  text-decoration: none;
-  overflow-wrap: break-word;
+    display: block;
+    color: #000;
+    padding: 8px 16px;
+    text-decoration: none;
+    overflow-wrap: break-word;
 }
 
 /* Change the link color on hover */
 .node a:hover {
-  background-color: #555;
-  color: white;
+    background-color: #555;
+    color: white;
 }

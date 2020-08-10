@@ -31,3 +31,6 @@ class DB(object):
     
     def date(self):
         return datetime.now()
+    
+    def get_links(self, user_id):
+        return self.links.where('user', '==', user_id)

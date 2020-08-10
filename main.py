@@ -6,14 +6,27 @@ from flask import (
     redirect,
     jsonify,
 )
+from flask_mobility import Mobility
 from flask_cors import CORS
 from db import DB, from_env
+from markdown import markdown
 import os, json, uuid
 
 app = Flask(__name__)
 CORS(app)
+Mobility(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 db = DB(from_env('CONF'))
+
+LINKS = '''
+<link rel='stylesheet' href='/static/styles.css'>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.0/milligram.css">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+'''
 
 def notes_to_dict(notes):
     res = {}
@@ -132,6 +145,8 @@ def app_notes():
     if request.method == 'GET':
         notesd = notes_to_dict(notes.get())
         notesj = escape(json.dumps(notesd))
+        if request.MOBILE:
+            return render_template('mobile_notes.html', user=user, notesj=notesj)
         return render_template('notes.html', user=user, notes=notesd, notesj=notesj)
     elif request.method == 'POST':
         notesd = request.json
@@ -175,9 +190,53 @@ def app_link(uid):
         return render_template('error.html', msg='This note has been deleted', redir='/#')
     raw = note.get('body')
     if link.get('render'):
-        return render_template('render.html', raw=unescape(raw))
+        return LINKS + '<br>' + markdown(unescape(raw))
+        return render_template('render.html', raw=raw)
     else:
         return unescape(raw)
+
+@app.route('/links')
+def app_links():
+    user = db.get_user(session.get('user'))
+    if user:
+        links_ = db.get_links(user.id).get()
+        links = {lnk.id:lnk.get('path').id for lnk in links_}
+        return render_template('links.html', links=links)
+    else:
+        return render_template('error.html', msg='You are not signed in', redir='/')
+
+@app.route('/delete/link', methods=['POST'])
+def app_delete_link():
+    user = db.get_user(session.get('user'))
+    if user:
+        uid = request.json.get('link')
+        link = db.links.document(uid)
+        if link.get().exists:
+            if link.get().get('user') == user.id:
+                link.delete()
+                return redirect('/links')
+            else:
+                return render_template('error.html', msg='That link does not belong to you', redir='/links')
+        else:
+            return render_template('error.html', msg='That link does not exist', redir='/links')
+    return render_template('error.html', msg='You are not signed in', redir='/')
+
+@app.route('/links/public', methods=['GET','POST'])
+def app_links_public():
+    if request.method == 'POST':
+        user = db.get_user(session.get('user'))
+        if user:
+            uid = request.json.get('link')
+            link = db.links.document(uid)
+            if link.get().exists:
+                link.set({'public': request.json.get('public', True)}, merge=True)
+                return redirect('/links/public')
+            return render_template('error.html', msg='Link does not exist', redir='/links')
+        return render_template('error.html', msg='Not logged in', redir='/')
+    elif request.method == 'GET':
+        links_ = db.links.where('public', '==', True).get()
+        links = {lnk.id:{'title':lnk.get('path').id,'user':lnk.get('user')} for lnk in links_}
+        return render_template('public_links.html', links=links)
 
 @app.route('/demo')
 def app_demo():
